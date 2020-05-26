@@ -9,6 +9,16 @@ class Task:
         self.r = r
         self.d = d
 
+        self.start = None
+
+
+class BB:
+    def __init__(self, tasks):
+        self.tasks = tasks
+
+    def plan(self):
+        pass
+
 
 if __name__ == '__main__':
     ifilename = sys.argv[1]
@@ -19,7 +29,6 @@ if __name__ == '__main__':
 
         n = int(line[0])
 
-        data = list()
         tasks = list()
         for idx in range(n):
             line = ifile.readline().strip().split()
@@ -28,10 +37,6 @@ if __name__ == '__main__':
 
             tasks.append(Task(idx, p, r, d))
 
-            data.append([p, r, d])
-
-        start_times = [0] * len(data)
-
     with open(ofilename) as ofile:
         for i in range(n):
-            ofile.write(start_times[i])
+            ofile.write(tasks[i].start)
