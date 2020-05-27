@@ -67,12 +67,12 @@ class BB:
     def _is_node_pruned(self, c, unscheduled_tasks):
         if self._is_missed_deadline(c, unscheduled_tasks):
             return True
-
         upper_bound = self._upper_bound(unscheduled_tasks)
         lower_bound = self._lower_bound(c, unscheduled_tasks)
-        if lower_bound > upper_bound:
+        if self.upper_bound == sys.maxsize and lower_bound > upper_bound:
             return True
-
+        elif self.upper_bound != sys.maxsize and lower_bound >= upper_bound:
+            return True
         return False
 
     def _is_optimal(self, c, unscheduled_tasks):
@@ -92,7 +92,6 @@ class BB:
                 is_this_optimal = False
                 if self._is_optimal(c, unscheduled_tasks):
                     # do not backtrack
-                    print('Optimal', c, scheduled_tasks, unscheduled_tasks)
                     is_this_optimal = True
 
                 for task in unscheduled_tasks:
