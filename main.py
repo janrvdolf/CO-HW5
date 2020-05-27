@@ -80,22 +80,21 @@ class BB:
         min_r = sys.maxsize
         for task in unscheduled_tasks:
             min_r = min(min_r, task.r)
-        if c <= min_r:
-            return True
-        return False
+        return c <= min_r
 
     @staticmethod
     def _is_node_leaf(unscheduled_tasks):
         return len(unscheduled_tasks) == 0
 
     def _tree_search(self, c, scheduled_tasks, unscheduled_tasks):
-        is_this_optimal = False
-        if c > 0 and self._is_optimal(c, unscheduled_tasks):
-            # do not backtrack
-            is_this_optimal = True
-
         if not self._is_node_leaf(unscheduled_tasks):
             if not self._is_node_pruned(c, unscheduled_tasks):
+                is_this_optimal = False
+                if self._is_optimal(c, unscheduled_tasks):
+                    # do not backtrack
+                    print('Optimal', c, scheduled_tasks, unscheduled_tasks)
+                    is_this_optimal = True
+
                 for task in unscheduled_tasks:
                     new_c = c
                     if task.r <= c:
@@ -113,15 +112,17 @@ class BB:
 
                     is_children_optimal = self._tree_search(new_c, new_scheduled_tasks, new_unscheduled_tasks)
                     if is_children_optimal:
-                        return True
-            return is_this_optimal
+                        # break  # working 5 but time limit reached
+                        return is_children_optimal  # time limit reached
+                        # return is_this_optimal  # time limit ok, but 5 is not working
+                return is_this_optimal
+            return False
         else:
-            if self.upper_bound >= c:
+            if self.upper_bound > c:
                 self.upper_bound = c
 
                 self.plan = copy.deepcopy(scheduled_tasks)
-
-        return is_this_optimal
+        return False
 
     def create_schedule(self):
         c = 0

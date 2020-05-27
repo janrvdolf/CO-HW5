@@ -114,6 +114,7 @@ class Housing:
 
         for s in ss:
             if s.is_opt():
+                print('OPTIMAL')
                 opt = s
                 break
 
