@@ -10,11 +10,17 @@ class Task:
         self.r = r
         self.d = d
 
-        self.start = None
+        self.starting_time = None
+
+    def set_starting_time(self, c):
+        if self.r <= c:
+            self.starting_time = c
+        else:
+            self.starting_time = self.r
 
     def __str__(self):
         return '<Task id={} p={} r={} d={}>'.format(
-            self.jid,
+            self.jid + 1,
             self.p,
             self.r,
             self.d
@@ -28,9 +34,18 @@ class BB:
     def __init__(self, tasks):
         self.tasks = tasks
 
-        self.upper_bound = None
+        self.upper_bound = sys.maxsize
 
         self.plan = list()
+
+    @staticmethod
+    def _lower_bound(c, unscheduled_tasks):
+        tmp_min = sys.maxsize
+        tmp_sum = 0
+        for task in unscheduled_tasks:
+            tmp_min = min(tmp_min, task.r)
+            tmp_sum += task.p
+        return max(c, tmp_min) + tmp_sum
 
     def _upper_bound(self, unscheduled_tasks):
         if self.upper_bound is None:
@@ -41,32 +56,70 @@ class BB:
         else:
             return self.upper_bound
 
-    def _is_node_pruned(self, scheduled_tasks, unscheduled_tasks):
-        pass
+    @staticmethod
+    def _is_missed_deadline(c, unscheduled_tasks):
+        for task in unscheduled_tasks:
+            if (max(c, task.r) + task.p) > task.d:
+                return True
+        return False
+
+    def _is_node_pruned(self, c, unscheduled_tasks):
+        if self._is_missed_deadline(c, unscheduled_tasks):
+            return True
+
+        upper_bound = self._upper_bound(unscheduled_tasks)
+        lower_bound = self._lower_bound(c, unscheduled_tasks)
+        if lower_bound > upper_bound:
+            return True
+
+        return False
+
+    def _is_optimal(self, c, unscheduled_tasks):
+        # Decomposition
+        min_r = sys.maxsize
+        for task in unscheduled_tasks:
+            min_r = min(min_r, task.r)
+        if c <= min_r:
+            return True
+        return False
 
     @staticmethod
     def _is_node_leaf(unscheduled_tasks):
         return len(unscheduled_tasks) == 0
 
     def _tree_search(self, c, scheduled_tasks, unscheduled_tasks):
-        if not self._is_node_pruned(scheduled_tasks, unscheduled_tasks):
-            if not self._is_node_leaf(unscheduled_tasks):
+        is_this_optimal = False
+        if self._is_optimal(c, unscheduled_tasks):
+            # do not backtrack
+            is_this_optimal = True
+
+        if not self._is_node_leaf(unscheduled_tasks):
+            if not self._is_node_pruned(c, unscheduled_tasks):
                 for task in unscheduled_tasks:
-                    new_scheduled_tasks = copy.deepcopy(scheduled_tasks)
-                    new_scheduled_tasks.append(task)
+                    new_c = c
+                    if task.r <= c:
+                        new_c += task.p
+                    else:
+                        new_c = task.r + task.p
 
                     new_unscheduled_tasks = unscheduled_tasks.difference([task])
 
-                    self._tree_search(c, scheduled_tasks, new_unscheduled_tasks)
-            else:
-                pass
-                """
-                upper_bound = self._upper_bound()
-                
-                if self._upper_bound > upper_bound:
-                    self.plan = copy.deepcopy(scheduled_tasks)
-                """
-        return
+                    new_scheduled_task = copy.deepcopy(task)
+                    new_scheduled_task.set_starting_time(c)
+
+                    new_scheduled_tasks = copy.deepcopy(scheduled_tasks)
+                    new_scheduled_tasks.append(new_scheduled_task)
+
+                    is_children_optimal = self._tree_search(new_c, new_scheduled_tasks, new_unscheduled_tasks)
+                    if is_children_optimal:
+                        return True
+        else:
+            if self.upper_bound > c:
+                self.upper_bound = c
+
+                self.plan = copy.deepcopy(scheduled_tasks)
+
+        return is_this_optimal
 
     def create_schedule(self):
         c = 0
@@ -80,7 +133,7 @@ class BB:
 
 if __name__ == '__main__':
     ifilename = sys.argv[1]
-    ofilename = sys.argv[0]
+    ofilename = sys.argv[2]
 
     with open(ifilename) as ifile:
         line = ifile.readline().strip().split()
@@ -98,9 +151,13 @@ if __name__ == '__main__':
     branch_and_bound = BB(tasks)
     schedule = branch_and_bound.create_schedule()
 
-    with open(ofilename) as ofile:
+    returning_list = [None] * n
+    for scheduled_task in schedule:
+        returning_list[scheduled_task.jid] = scheduled_task.starting_time
+
+    with open(ofilename, 'w') as ofile:
         for i in range(n):
-            if i == (n - 1):
-                ofile.write(str(schedule[i]) + '\n')
+            if i != (n - 1):
+                ofile.write(str(returning_list[i]) + '\n')
             else:
-                ofile.write(str(schedule[i]))
+                ofile.write(str(returning_list[i]))
