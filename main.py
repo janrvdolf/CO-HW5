@@ -89,12 +89,12 @@ class BB:
         return len(unscheduled_tasks) == 0
 
     def _tree_search(self, c, scheduled_tasks, unscheduled_tasks):
-        if not self._is_node_leaf(unscheduled_tasks):
-            is_this_optimal = False
-            if self._is_optimal(c, unscheduled_tasks):
-                # do not backtrack
-                is_this_optimal = True
+        is_this_optimal = False
+        if c > 0 and self._is_optimal(c, unscheduled_tasks):
+            # do not backtrack
+            is_this_optimal = True
 
+        if not self._is_node_leaf(unscheduled_tasks):
             if not self._is_node_pruned(c, unscheduled_tasks):
                 for task in unscheduled_tasks:
                     new_c = c
@@ -121,7 +121,7 @@ class BB:
 
                 self.plan = copy.deepcopy(scheduled_tasks)
 
-        return False
+        return is_this_optimal
 
     def create_schedule(self):
         c = 0
@@ -152,8 +152,6 @@ if __name__ == '__main__':
 
     branch_and_bound = BB(tasks)
     schedule = branch_and_bound.create_schedule()
-
-    print('Schedule', schedule)
 
     returning_list = [None] * n
     for scheduled_task in schedule:
