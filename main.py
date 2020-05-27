@@ -19,11 +19,12 @@ class Task:
             self.starting_time = self.r
 
     def __str__(self):
-        return '<Task id={} p={} r={} d={}>'.format(
+        return '<Task id={} p={} r={} d={} s={}>'.format(
             self.jid + 1,
             self.p,
             self.r,
-            self.d
+            self.d,
+            self.starting_time
         )
 
     def __repr__(self):
@@ -48,7 +49,7 @@ class BB:
         return max(c, tmp_min) + tmp_sum
 
     def _upper_bound(self, unscheduled_tasks):
-        if self.upper_bound is None:
+        if self.upper_bound == sys.maxsize:
             max_deadline = -sys.maxsize
             for task in unscheduled_tasks:
                 max_deadline = max(task.d, max_deadline)
@@ -88,12 +89,12 @@ class BB:
         return len(unscheduled_tasks) == 0
 
     def _tree_search(self, c, scheduled_tasks, unscheduled_tasks):
-        is_this_optimal = False
-        if self._is_optimal(c, unscheduled_tasks):
-            # do not backtrack
-            is_this_optimal = True
-
         if not self._is_node_leaf(unscheduled_tasks):
+            is_this_optimal = False
+            if self._is_optimal(c, unscheduled_tasks):
+                # do not backtrack
+                is_this_optimal = True
+
             if not self._is_node_pruned(c, unscheduled_tasks):
                 for task in unscheduled_tasks:
                     new_c = c
@@ -113,13 +114,14 @@ class BB:
                     is_children_optimal = self._tree_search(new_c, new_scheduled_tasks, new_unscheduled_tasks)
                     if is_children_optimal:
                         return True
+            return is_this_optimal
         else:
-            if self.upper_bound > c:
+            if self.upper_bound >= c:
                 self.upper_bound = c
 
                 self.plan = copy.deepcopy(scheduled_tasks)
 
-        return is_this_optimal
+        return False
 
     def create_schedule(self):
         c = 0
@@ -151,13 +153,18 @@ if __name__ == '__main__':
     branch_and_bound = BB(tasks)
     schedule = branch_and_bound.create_schedule()
 
+    print('Schedule', schedule)
+
     returning_list = [None] * n
     for scheduled_task in schedule:
         returning_list[scheduled_task.jid] = scheduled_task.starting_time
 
     with open(ofilename, 'w') as ofile:
-        for i in range(n):
-            if i != (n - 1):
-                ofile.write(str(returning_list[i]) + '\n')
-            else:
-                ofile.write(str(returning_list[i]))
+        if len(schedule) == 0:
+            ofile.write('-1')
+        else:
+            for i in range(n):
+                if i != (n - 1):
+                    ofile.write(str(returning_list[i]) + '\n')
+                else:
+                    ofile.write(str(returning_list[i]))
